@@ -1,35 +1,49 @@
-import {Component, OnInit} from '@angular/core';
+import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 
-import {MessageService} from '../../messages/message.service';
+import { MessageService } from '../../messages/message.service';
 
-import {Product, ProductResolved} from '../product';
-import {ProductService} from '../product.service';
-import {ActivatedRoute, Router} from "@angular/router";
+import { Product, ProductResolved } from '../product';
+import { ProductService } from '../product.service';
 
 @Component({
   templateUrl: './product-edit.component.html',
   styleUrls: ['./product-edit.component.css']
 })
 export class ProductEditComponent implements OnInit {
-  ngOnInit(): void {
-    this.route.data.subscribe(data => {
-      const resolvedData: ProductResolved = data['resolvedData'];
-      const error = resolvedData.error;
-      this.onProductRetrieved(resolvedData.product);
-    })
-  }
-
-
   pageTitle = 'Product Edit';
   errorMessage: string;
 
-  product: Product;
-  private dataIsValid : {[key:string]: boolean} ={};
+  private dataIsValid: { [key: string]: boolean } = {};
 
-  constructor(private productService: ProductService,
-              private messageService: MessageService, private route: ActivatedRoute, private router: Router) {
+  get isDirty(): boolean {
+    return JSON.stringify(this.originalProduct) !== JSON.stringify(this.currentProduct);
   }
 
+  private currentProduct: Product;
+  private originalProduct: Product;
+
+  get product(): Product {
+    return this.currentProduct;
+  }
+  set product(value: Product) {
+    this.currentProduct = value;
+    // Clone the object to retain a copy
+    this.originalProduct = value ? { ...value } : null;
+  }
+
+  constructor(private productService: ProductService,
+              private messageService: MessageService,
+              private route: ActivatedRoute,
+              private router: Router) { }
+
+  ngOnInit(): void {
+    this.route.data.subscribe(data => {
+      const resolvedData: ProductResolved = data['resolvedData'];
+      this.errorMessage = resolvedData.error;
+      this.onProductRetrieved(resolvedData.product);
+    });
+  }
 
   onProductRetrieved(product: Product): void {
     this.product = product;
@@ -57,8 +71,8 @@ export class ProductEditComponent implements OnInit {
         });
       }
     }
-
   }
+
   isValid(path?: string): boolean {
     this.validate();
     if (path) {
@@ -68,11 +82,11 @@ export class ProductEditComponent implements OnInit {
       Object.keys(this.dataIsValid).every(d => this.dataIsValid[d] === true));
   }
 
-  // reset(): void {
-  //   this.dataIsValid = null;
-  //   this.currentProduct = null;
-  //   this.originalProduct = null;
-  // }
+  reset(): void {
+    this.dataIsValid = null;
+    this.currentProduct = null;
+    this.originalProduct = null;
+  }
 
   saveProduct(): void {
     if (this.isValid()) {
@@ -90,17 +104,18 @@ export class ProductEditComponent implements OnInit {
     } else {
       this.errorMessage = 'Please correct the validation errors.';
     }
-
   }
 
   onSaveComplete(message?: string): void {
     if (message) {
       this.messageService.addMessage(message);
     }
-    this.router.navigate(['/products']);
+    this.reset();
 
     // Navigate back to the product list
+    this.router.navigate(['/products']);
   }
+
   validate(): void {
     // Clear the validation object
     this.dataIsValid = {};
